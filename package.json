@@ -1,0 +1,29 @@
+{
+  "name": "360-nfc-valet-admin",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:setup": "node db/seed.js",
+    "db:reset": "node db/reset.js",
+    "ws": "node ws-server.js",
+    "dev:all": "node -e \"const c=require('child_process');c.spawn('node',['ws-server.js'],{stdio:'inherit',cwd:process.cwd()});c.spawn('npx',['next','dev'],{stdio:'inherit',cwd:process.cwd()})\""
+  },
+  "dependencies": {
+    "date-fns": "^4.4.0",
+    "dotenv": "^17.4.2",
+    "formik": "^2.4.9",
+    "next": "^15.1.6",
+    "nodemailer": "^9.0.5",
+    "pg": "^8.23.0",
+    "react": "^19.0.0",
+    "react-day-picker": "^10.0.1",
+    "react-dom": "^19.0.0",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
+    "yup": "^1.7.1"
+  }
+}
