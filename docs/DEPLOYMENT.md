@@ -1,20 +1,24 @@
 # DEPLOYMENT.md
 
-## Current State
+## Architecture
 
-- Local development with `npm run dev` against PostgreSQL (Laragon).
-- Production build verified locally with `npm run build` + `npm run start`.
-- **No cloud deployment configured yet.**
+| Component | Host | Purpose |
+|---|---|---|
+| Web app (Next.js) | Render (Web Service) | Serves the admin console |
+| Database (PostgreSQL) | Neon | Managed Postgres (with PgBouncer pooler) |
 
-## Environment variables (`.env`)
+- Repo: `https://github.com/dimple0613/360-NFC-Valet-admin` (branch `main`)
+- Web app URL: `https://360-nfc-valet-admin.onrender.com`
+
+## Environment variables
 
 | Variable | Purpose |
 |---|---|
-| `DATABASE_URL` | Postgres connection string (default `postgresql://postgres@localhost:5432/360nfc_valet`) |
+| `DATABASE_URL` | Neon connection string (see below) |
 | `JWT_SECRET` | Secret used to sign session cookies |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Super-admin used by the seeder |
 
-Copy `.env.example` to `.env` and set values before running the seeder.
+Copy `.env.example` to `.env` for local development.
 
 ## Local development
 
@@ -30,28 +34,57 @@ npm run dev
 
 Open http://localhost:3000 and sign in with `admin@wewant360.com` / `admin123`.
 
-## Production
+## Production setup (Render + Neon)
 
-1. Provision a managed PostgreSQL (e.g. Neon, Supabase, Railway, RDS) and set `DATABASE_URL`.
-2. Run the schema + seed against it once: `npm run db:setup`.
-3. Build and start:
+### 1. Neon database
+
+1. Create a project at https://neon.tech → name `360-nfc-valet`, database `360nfc_valet`, region near the Render region.
+2. Copy the **Pooled** connection string (host contains `-pooler`), e.g.
+   `postgresql://user:password@ep-xxx-pooler.us-east-1.aws.neon.tech/360nfc_valet`
+3. Ensure it ends with `?sslmode=require` (append it if not).
+
+### 2. Render web service
+
+1. New Web Service → connect the GitHub repo `360-NFC-Valet-admin` → branch `main`.
+2. Settings:
+   - Build Command: `npm install && npm run build`
+   - Start Command: `npm run start`
+   - Node version: 20
+3. Environment variables:
+   - `DATABASE_URL` = Neon pooled URL
+   - `JWT_SECRET` = long random string (`openssl rand -hex 32`)
+   - `ADMIN_EMAIL` = `admin@wewant360.com`
+   - `ADMIN_PASSWORD` = `admin123`
+4. Deploy (manual or auto on push).
+
+### 3. Schema + seed (run once against Neon)
+
+Option A — Render Shell:
 
 ```bash
-npm run build
-npm run start
+npm run db:setup
 ```
 
-4. Put it behind TLS (cookie is `HttpOnly; SameSite=Lax`; consider `Secure` behind HTTPS).
+Option B — locally with the Neon non-pooled connection string:
 
-## Deploy target (Next.js hosting)
+```bash
+DATABASE_URL="postgresql://user:password@ep-xxx.us-east-1.aws.neon.tech/360nfc_valet?sslmode=require" \
+ADMIN_EMAIL="admin@wewant360.com" ADMIN_PASSWORD="admin123" \
+npm run db:setup
+```
 
-| Host | Notes |
-|---|---|
-| Vercel | Native Next.js support; `npm run build` runs on deploy; add `DATABASE_URL` + `JWT_SECRET` as env vars |
-| Railway / Render | Node server — build with `npm run build`, start with `npm run start` |
-| Docker | `node:20-alpine`, copy `.next` + `package.json`, run `npm run start` |
+Verify tables in Neon dashboard → **Tables** tab.
 
-> The Pages Router API routes run as Node serverless functions on Vercel; a connection pool created at module scope is acceptable for low traffic but a connection pooler (e.g. PgBouncer) is recommended as traffic grows.
+### 4. Verify
+
+Open the Render URL → redirected to `/login` → sign in with `admin@wewant360.com` / `admin123`.
+
+## Notes
+
+- **WebSocket (`ws-server.js`)** is a separate Node process; Render does not run it, so live socket features (dashboard live activity, driver updates) won't work. Everything else (CRUD, reports, auth) works.
+- **Neon free tier**: 0.5 GB storage; compute auto-suspends after ~5 min idle (first query after idle takes a few seconds). Add `connection_limit=10` to the URL if connection limits are hit.
+- **Render free tier**: instance sleeps after 15 min idle. Upgrade to paid plans for production.
+- This app's `pg.Pool` (max 10 connections) is a good fit for Neon's PgBouncer pooler.
 
 ## Suggested CI/CD (GitHub Actions)
 
@@ -88,7 +121,5 @@ jobs:
 
 ## Pending decisions
 
-- Cloud host for the web app (Vercel vs VPS vs container platform).
-- Managed Postgres provider + pooler for scale.
 - Monitoring and logging (e.g. Sentry, OpenTelemetry).
 - Custom domain / TLS configuration.
