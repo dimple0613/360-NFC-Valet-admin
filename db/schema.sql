@@ -55,6 +55,8 @@ CREATE TABLE IF NOT EXISTS drivers (
 CREATE TABLE IF NOT EXISTS nfc_cards (
   id          SERIAL PRIMARY KEY,
   uid         TEXT UNIQUE NOT NULL,
+  physical_uid TEXT,
+  card_number  TEXT,
   property_id INT NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
   status      TEXT NOT NULL DEFAULT 'ready',
   uses_count  INT NOT NULL DEFAULT 0,
@@ -108,6 +110,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_property_status ON orders(property_id, sta
 CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at);
 CREATE INDEX IF NOT EXISTS idx_orders_returned ON orders(returned_at);
 CREATE INDEX IF NOT EXISTS idx_cards_property ON nfc_cards(property_id);
+CREATE INDEX IF NOT EXISTS idx_cards_physical_uid ON nfc_cards(physical_uid);
 CREATE INDEX IF NOT EXISTS idx_drivers_property ON drivers(property_id);
 CREATE INDEX IF NOT EXISTS idx_offers_property ON offers(property_id);
 

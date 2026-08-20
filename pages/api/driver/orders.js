@@ -19,47 +19,37 @@ export default withDriverSession(async function handler(req, res) {
 
       if (cardUid) {
         const { rows } = await query(
-          "SELECT id, status FROM nfc_cards WHERE uid = $1 AND property_id = $2",
+          "SELECT id, status, uid FROM nfc_cards WHERE physical_uid = $1 AND property_id = $2",
           [cardUid, propertyId]
         );
         card = rows[0] || null;
       }
 
-      if (!card && cardUid) {
+      const printed = (cardNumber && String(cardNumber).trim()) || (cardUid && /^\d{1,6}$/.test(cardUid) ? cardUid : null);
+      if (!card && printed) {
         const { rows } = await query(
-          "SELECT id, status FROM nfc_cards WHERE physical_uid = $1 AND property_id = $2",
-          [cardUid, propertyId]
+          "SELECT id, status, uid FROM nfc_cards WHERE uid = $1 AND property_id = $2",
+          [printed, propertyId]
         );
         card = rows[0] || null;
-      }
-
-      if (!card && cardNumber) {
-        const { rows } = await query(
-          "SELECT id, status FROM nfc_cards WHERE card_number = $1 AND property_id = $2",
-          [cardNumber, propertyId]
-        );
-        card = rows[0] || null;
-      }
-
-      if (!card && cardUid) {
-        const { rows } = await query("SELECT id, property_id, status, card_number FROM nfc_cards WHERE uid = $1", [cardUid]);
-        if (rows.length) {
-          return badRequest(res, `Card NFC UID ${cardUid} exists at property ${rows[0].property_id} (card #${rows[0].card_number}, status: ${rows[0].status}), but session property is ${propertyId}`);
-        }
-        const { rows: physRows } = await query("SELECT id, property_id, status, card_number FROM nfc_cards WHERE physical_uid = $1", [cardUid]);
-        if (physRows.length) {
-          return badRequest(res, `Card physical UID ${cardUid} exists at property ${physRows[0].property_id} (card #${physRows[0].card_number}, status: ${physRows[0].status}), but session property is ${propertyId}`);
-        }
-      }
-
-      if (!card && cardNumber) {
-        const { rows } = await query("SELECT id, property_id, status FROM nfc_cards WHERE card_number = $1", [cardNumber]);
-        if (rows.length) {
-          return badRequest(res, `Card #${cardNumber} exists at property ${rows[0].property_id} (status: ${rows[0].status}), but session property is ${propertyId}`);
+        if (card && cardUid && cardUid !== printed) {
+          await query("UPDATE nfc_cards SET physical_uid = $1 WHERE id = $2", [cardUid, card.id]);
         }
       }
 
       if (!card) {
+        if (printed) {
+          const { rows } = await query("SELECT id, property_id, status, uid FROM nfc_cards WHERE uid = $1", [printed]);
+          if (rows.length) {
+            return badRequest(res, `Card #${printed} exists at property ${rows[0].property_id} (status: ${rows[0].status}), but your session property is ${propertyId}`);
+          }
+        }
+        if (cardUid) {
+          const { rows } = await query("SELECT id, property_id, status, uid FROM nfc_cards WHERE physical_uid = $1", [cardUid]);
+          if (rows.length) {
+            return badRequest(res, `Card serial ${cardUid} exists at property ${rows[0].property_id} (card #${rows[0].uid}, status: ${rows[0].status}), but your session property is ${propertyId}`);
+          }
+        }
         return badRequest(res, "Card not found. Enter the 4-digit card number printed on the card.");
       }
       if (card.status === "blocked") return badRequest(res, "This card is blocked");

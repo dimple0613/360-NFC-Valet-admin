@@ -38,6 +38,13 @@ async function seed() {
     // columns already exist
   }
   try {
+    await query("ALTER TABLE nfc_cards ADD COLUMN IF NOT EXISTS physical_uid TEXT");
+    await query("ALTER TABLE nfc_cards ADD COLUMN IF NOT EXISTS card_number TEXT");
+    await query("CREATE INDEX IF NOT EXISTS idx_cards_physical_uid ON nfc_cards(physical_uid)");
+  } catch {
+    // columns already exist
+  }
+  try {
     await query("ALTER TABLE password_resets ADD COLUMN IF NOT EXISTS driver_id INT REFERENCES drivers(id) ON DELETE CASCADE");
     await query("ALTER TABLE password_resets ALTER COLUMN admin_id DROP NOT NULL");
   } catch {
