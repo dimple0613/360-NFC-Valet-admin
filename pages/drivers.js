@@ -89,7 +89,7 @@ export default function Drivers() {
     "valet.order.created": () => load(),
     "valet.order.parked": () => load(),
     "valet.order.completed": () => load(),
-  });
+  }, load);
 
   async function loadDetail(d) {
     setDetailDriver(d);

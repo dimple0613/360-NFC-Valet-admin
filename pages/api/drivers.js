@@ -153,7 +153,7 @@ export default withSession(async function handler(req, res) {
       const { name, email, phone, emiratesId, licenseNumber, nationality, emergencyContact, password, propertyId } = req.body || {};
       if (!name) return badRequest(res, "Name is required");
       if (!password || String(password).length < 6) return badRequest(res, "Password must be at least 6 characters");
-      const { count } = (await query("SELECT COUNT(*)::int AS count FROM drivers WHERE status != 'removed'")).rows[0];
+      const { count } = (await query("SELECT COUNT(*)::int AS count FROM drivers")).rows[0];
       const valetId = makeValetId(count + 1);
       const customPassword = String(password);
       const colors = ["#1C2B46", "#4A5FC9", "#0C9D61", "#9AA6BC", "#2A3C61", "#B97B17"];
@@ -197,7 +197,7 @@ export default withSession(async function handler(req, res) {
       if (!id) return badRequest(res, "Driver id is required");
 
       if (remove) {
-        await query("UPDATE drivers SET status = 'off_duty', shift_started_at = NULL WHERE id = $1", [id]);
+        await query("UPDATE drivers SET status = 'removed', shift_started_at = NULL WHERE id = $1", [id]);
         return res.status(200).json({ id, removed: true });
       }
 

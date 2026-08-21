@@ -1,12 +1,12 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { io } from "socket.io-client";
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3002";
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "";
 
 let globalSocket = null;
-let globalListeners = new Map();
 
 function getSocket(token) {
+  if (!WS_URL) return null;
   if (globalSocket && globalSocket.connected) return globalSocket;
   if (globalSocket) {
     globalSocket.disconnect();
@@ -31,13 +31,16 @@ function getSocket(token) {
   return globalSocket;
 }
 
-export function useSocket(events = {}) {
+export function useSocket(events = {}, poll) {
   const socketRef = useRef(null);
   const [connected, setConnected] = useState(false);
   const eventsRef = useRef(events);
   eventsRef.current = events;
+  const pollRef = useRef(poll);
+  pollRef.current = poll;
 
   useEffect(() => {
+    if (!WS_URL) return;
     let token = null;
     try {
       const match = document.cookie.match(/session=([^;]+)/);
@@ -45,6 +48,7 @@ export function useSocket(events = {}) {
     } catch {}
 
     const socket = getSocket(token);
+    if (!socket) return;
     socketRef.current = socket;
 
     socket.on("connect", () => setConnected(true));
@@ -82,6 +86,13 @@ export function useSocket(events = {}) {
       socket.off("disconnect");
     };
   }, []);
+
+  useEffect(() => {
+    if (WS_URL && connected) return;
+    if (!pollRef.current) return;
+    const t = setInterval(() => pollRef.current?.(), 20000);
+    return () => clearInterval(t);
+  }, [connected]);
 
   const subscribeProperty = useCallback((propertyId) => {
     socketRef.current?.emit("subscribe:property", propertyId);

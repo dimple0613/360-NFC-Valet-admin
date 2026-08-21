@@ -49,7 +49,7 @@ export default function Reports() {
     "valet.order.completed": () => load(),
     "driver.shift.started": () => load(),
     "driver.shift.ended": () => load(),
-  });
+  }, load);
 
   async function load() {
     setLoading(true);

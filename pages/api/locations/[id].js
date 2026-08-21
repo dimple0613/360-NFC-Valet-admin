@@ -58,12 +58,10 @@ export default withSession(async function handler(req, res) {
     }
 
     if (req.method === "DELETE") {
-      const { rows: orders } = await query("SELECT id FROM orders WHERE property_id=$1", [id]);
-      if (orders.length) {
-        const ids = orders.map((o) => o.id);
-        await query("DELETE FROM validations WHERE order_id = ANY($1::int[])", [ids]);
-      }
+      await query("DELETE FROM validations WHERE order_id IN (SELECT id FROM orders WHERE property_id = $1)", [id]);
       await query("DELETE FROM orders WHERE property_id=$1", [id]);
+      await query("DELETE FROM nfc_cards WHERE property_id=$1", [id]);
+      await query("DELETE FROM zones WHERE property_id=$1", [id]);
       await query("UPDATE drivers SET property_id=NULL WHERE property_id=$1", [id]);
       await query("DELETE FROM properties WHERE id=$1", [id]);
       return res.status(200).json({ id });

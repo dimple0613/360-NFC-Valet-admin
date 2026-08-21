@@ -37,7 +37,7 @@ export default function Offers() {
 
   const { connected } = useSocket({
     "offer.updated": () => load(),
-  });
+  }, load);
 
   async function load() {
     setLoading(true);

@@ -53,7 +53,7 @@ export default function Cards() {
     "nfc.card.unblocked": () => load(),
     "valet.order.parked": () => load(),
     "valet.order.completed": () => load(),
-  });
+  }, load);
 
   async function onSubmit(values, { setSubmitting, resetForm }) {
     try {

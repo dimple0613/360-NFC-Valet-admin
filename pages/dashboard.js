@@ -103,7 +103,7 @@ export default function Dashboard() {
     "valet.order.parked": () => load(),
     "valet.order.completed": () => load(),
     "nfc.card.activated": () => load(),
-  });
+  }, load);
 
   useEffect(() => {
     api("/api/me")

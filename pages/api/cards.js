@@ -40,7 +40,7 @@ export default withSession(async function handler(req, res) {
         where += ` AND c.property_id = $${params.length}`;
       }
       const { rows: cards } = await query(
-        `SELECT c.id, c.uid, c.status, c.uses_count, p.name AS property,
+        `SELECT c.id, c.uid, c.status, c.uses_count, c.property_id, p.name AS property,
                 last.plate, last.car_make, last.car_model, last.zone, last.slot,
                 last.order_status, last.by_name, last.last_at
          FROM nfc_cards c
