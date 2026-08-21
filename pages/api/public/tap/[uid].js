@@ -16,8 +16,8 @@ export default async function handler(req, res) {
               p.id AS property_id, p.name AS property_name, p.area, p.slug, p.city, p.phone
        FROM nfc_cards c
        JOIN properties p ON p.id = c.property_id
-       WHERE c.uid = $1`,
-      [uid]
+       WHERE c.uid = $1 OR UPPER(c.physical_uid) = UPPER($2)`,
+      [uid, uid]
     );
     const card = cards[0];
     if (!card) return notFound(res, "Card not found");
@@ -53,6 +53,7 @@ export default async function handler(req, res) {
         },
         order: order
           ? {
+              id: order.id,
               plate: order.plate,
               carMake: order.car_make,
               carModel: order.car_model,
