@@ -48,6 +48,26 @@ export default withDriverSession(async function handler(req, res) {
         }
       }
 
+      let assignedNumber = null;
+      if (!card && cardUid && !printed) {
+        const { rows: maxRows } = await query(
+          "SELECT COALESCE(MAX(uid::bigint), 0)::int AS max_uid FROM nfc_cards WHERE property_id = $1 AND uid ~ '^[0-9]+$'",
+          [propertyId]
+        );
+        let nextUid = Number(maxRows[0]?.max_uid || 0) + 1;
+        for (let i = 0; i < 10; i++) {
+          const { rows: ex } = await query("SELECT 1 FROM nfc_cards WHERE uid = $1", [String(nextUid)]);
+          if (!ex.length) break;
+          nextUid += 1;
+        }
+        const { rows: created } = await query(
+          "INSERT INTO nfc_cards (uid, physical_uid, property_id, status) VALUES ($1, $2, $3, 'ready') RETURNING id, status, uid",
+          [String(nextUid), cardUid, propertyId]
+        );
+        card = created[0];
+        assignedNumber = card.uid;
+      }
+
       if (!card) {
         if (printed) {
           const { rows } = await query("SELECT id, property_id, status, uid FROM nfc_cards WHERE uid = $1", [printed]);
@@ -105,6 +125,7 @@ export default withDriverSession(async function handler(req, res) {
       return res.status(201).json({
         orderId: order.id,
         createdAt: order.created_at,
+        ...(assignedNumber ? { cardNumber: assignedNumber } : {}),
       });
     }
 
