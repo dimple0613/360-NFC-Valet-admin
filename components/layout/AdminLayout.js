@@ -9,6 +9,7 @@ import {
   CardIcon,
   TagIcon,
   ReportIcon,
+  BoltIcon,
   ChevronDown,
   UserIcon,
   LockIcon,
@@ -18,6 +19,7 @@ import { api } from "@/lib/client";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", Icon: DashboardIcon },
+  { href: "/queue", label: "Live Queue", Icon: BoltIcon },
   { href: "/locations", label: "Locations", Icon: BuildingIcon },
   { href: "/drivers", label: "Drivers", Icon: UsersIcon },
   { href: "/cards", label: "NFC Cards", Icon: CardIcon },
