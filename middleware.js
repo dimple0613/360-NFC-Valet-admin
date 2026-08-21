@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-const ALLOWED = (process.env.CORS_ORIGINS || "http://localhost:3001,http://localhost:8081")
+const ALLOWED = (
+  process.env.CORS_ORIGINS ||
+  "http://localhost:3001,http://localhost:8081,https://360-nfc-valet-mobile.vercel.app"
+)
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
