@@ -9,7 +9,7 @@ export default withDriverSession(async function handler(req, res) {
     const propertyId = req.session.propertyId;
 
     if (req.method === "POST") {
-      const { cardUid, cardNumber, plate, carMake, carModel, carColor, zone, slot } = req.body || {};
+      const { cardUid, cardNumber, plate, carMake, carModel, carColor, zone, slot, createCard } = req.body || {};
       if (!plate) return badRequest(res, "plate is required");
       if (!cardUid && !cardNumber) return badRequest(res, "cardUid or cardNumber is required");
 
@@ -34,6 +34,17 @@ export default withDriverSession(async function handler(req, res) {
         card = rows[0] || null;
         if (card && cardUid && cardUid !== printed) {
           await query("UPDATE nfc_cards SET physical_uid = $1 WHERE id = $2", [cardUid, card.id]);
+        }
+        if (!card && createCard && cardNumber) {
+          const { rows: globalRows } = await query("SELECT id, property_id FROM nfc_cards WHERE uid = $1", [printed]);
+          if (globalRows.length) {
+            return badRequest(res, `Card #${printed} already exists at another property (${globalRows[0].property_id})`);
+          }
+          const { rows: created } = await query(
+            "INSERT INTO nfc_cards (uid, physical_uid, property_id, status) VALUES ($1, $2, $3, 'ready') RETURNING id, status, uid",
+            [printed, cardUid || null, propertyId]
+          );
+          card = created[0];
         }
       }
 
